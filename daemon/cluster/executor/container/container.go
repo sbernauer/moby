@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"encoding/json"
 
 	"github.com/sirupsen/logrus"
 
@@ -71,7 +72,47 @@ func (c *containerConfig) setTask(t *api.Task, node *api.NodeDescription) error 
 
 	// index the networks by name
 	c.networksAttachments = make(map[string]*api.NetworkAttachment, len(t.Networks))
+
 	for _, attachment := range t.Networks {
+
+		type Container struct {
+			Env []string `json:"env"`
+		}
+		type Runtime struct {
+			Container Container `json:"Container"`
+		}
+
+		type Spec struct {
+			Runtime Runtime `json:"Runtime"`
+		}
+
+		type Task struct {
+			Spec Spec `json:"spec"`
+		}
+
+		// Working arround bug (see https://stackoverflow.com/questions/28907976/type-has-not-field-or-method-read-but-it-does)
+		// Please forgive me
+		taskAsJSON, _ := json.Marshal(t)
+		var result Task
+		json.Unmarshal(taskAsJSON, &result)
+
+		for _, envVariable := range result.Spec.Runtime.Container.Env {
+			var envContent = strings.Split(envVariable, "=")
+			if len(envContent) != 2 || envContent[0] != "IP" {
+				continue
+			}
+
+			// Check if the IP is in the same network. If so replace it by the specifyed IP
+			for _, attachmentAddress := range attachment.Addresses {}
+				var existingIp, existingNetwork, _ = net.ParseCIDR(attachmentAddress)
+				var toReplacingIP, _, _ = net.ParseCIDR(envContent[1])
+				if existingNetwork.Contains(toReplacingIP) {
+					fmt.Println("#####################  Replaced the IP from ", existingIp, " to ", toReplacingIP, " in the network ", existingNetwork)
+					attachment.Addresses = []string{envContent[1]}
+				}
+			}
+		}
+
 		c.networksAttachments[attachment.Network.Spec.Annotations.Name] = attachment
 	}
 

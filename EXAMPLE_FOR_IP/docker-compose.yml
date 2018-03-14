@@ -1,0 +1,46 @@
+version: "3.1"
+services:
+
+  manager:
+    image: debian:8.4
+    entrypoint: sleep infinity
+    hostname: manager
+    ports:
+      - "80:7180"
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+    environment:
+      - IP=10.0.0.42/24
+      - IP_TO_NET_NOT_IMPLEMENTED_YET={netzwerk:foo_network2,ip:*.*.*.3}
+    networks:
+      - network
+      - network2
+
+  node1:
+    image: debian:8.4
+    entrypoint: sleep infinity
+    hostname: node1
+    environment:
+      - IP=10.0.1.101/24
+    networks:
+      - network
+      - network2
+
+  visualizer:
+    image: dockersamples/visualizer:stable
+    ports:
+      - "443:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+    networks:
+      - network
+
+networks:
+  network:
+    driver: overlay
+  network2:
+    driver: overlay
